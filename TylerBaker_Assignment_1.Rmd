@@ -1,0 +1,122 @@
+---
+title: "Data 608 Module 1 HW"
+author: "Tyler Baker"
+date: "2/12/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+
+**Principles of Data Visualization and Introduction to ggplot2**
+
+I have provided you with data about the 5,000 fastest growing companies in the US, as compiled by Inc. magazine. lets read this in:
+
+```{r}
+
+inc <- read.csv("https://raw.githubusercontent.com/charleyferrari/CUNY_DATA_608/master/module1/Data/inc5000_data.csv", header= TRUE)
+
+```
+
+And lets preview this data:
+
+```{r}
+
+head(inc)
+
+```
+```{r}
+
+summary(inc)
+
+```
+
+Think a bit on what these summaries mean. Use the space below to add some more relevant non-visual exploratory information you think helps you understand this data:
+
+```{r}
+
+# Insert your code here, create more chunks as necessary
+
+```
+
+## Question 1
+
+Create a graph that shows the distribution of companies in the dataset by State (ie how many are in each state). There are a lot of States, so consider which axis you should use. This visualization is ultimately going to be consumed on a 'portrait' oriented screen (ie taller than wide), which should further guide your layout choices.
+
+```{r fig.height= 10, fig.width= 5}
+ggplot(inc, aes(y = State))+
+  geom_bar()+theme_classic()+scale_x_continuous(breaks=c(seq(from=0, to=1000, by=50)))+labs(x="Number of Compaines",y="States",title="Fastest Growing US Companies by State")
+
+
+```
+
+## Quesiton 2
+
+Lets dig in on the state with the 3rd most companies in the data set. Imagine you work for the state and are interested in how many people are employed by companies in different industries. Create a plot that shows the average and/or median employment by industry for companies in this state (only use cases with full data, use R's `complete.cases()` function.) In addition to this, your graph should show how variable the ranges are, and you should deal with outliers.
+
+```{r}
+table(inc$State)
+#NY is the third state
+ny_data <- inc %>% filter(State == "NY")
+ny_complete_data <- ny_data[complete.cases(ny_data),]
+```
+
+```{r fig.height= 20}
+ggplot(ny_complete_data, aes(y = 1, x = Employees))+
+  geom_boxplot()+
+  scale_x_continuous((breaks = NULL))+
+  theme(axis.title.x=element_blank())+
+  facet_wrap(Industry ~ .)
+```
+
+
+
+
+
+
+
+As we can see some of these outliers are insane. One company in particular has like 10000 employees. To handle these outliers I'm going to drop the very extreme ones.
+```{r fig.height=20, fig.width=20}
+new_ny_complete_data <- ny_complete_data %>% filter(Employees <=1000)
+ggplot(new_ny_complete_data, aes(y = 1, x = Employees))+
+  geom_boxplot()+
+  scale_x_continuous((breaks = NULL))+
+  theme(axis.title.x=element_blank())+
+  facet_wrap(Industry ~ .)
+```
+## Question 3
+
+Now imagine you work for an investor and want to see which industries generate the most revenue per employee. Create a chart that makes this information clear. Once again, the distribution per industry should be shown.
+
+```{r}
+inc$Revenue_per_Employee <- (inc$Revenue/inc$Employees)
+complete_inc <- inc[complete.cases(inc),]
+industry_means <- aggregate(complete_inc$Revenue_per_Employee, by=list(complete_inc$Industry), mean)
+colnames(industry_means)<- c("Industry", "Average_Revenue_per_Employee")
+```
+
+```{r fig.height=20, fig.width=10}
+ggplot(industry_means, aes(y= Industry, x = Average_Revenue_per_Employee))+
+  geom_col()+
+  theme_classic()
+```
+
+Here we see that the energy industry has the highest average revenue per employee. Now we should check the distribution of the energy industry to look for any possible extreme outliers.
+
+
+```{r fig.height=20, fig.width=10}
+energy_data <- complete_inc %>% filter(Industry == "Energy")
+ggplot(energy_data, aes(x = 1, y = Revenue_per_Employee))+
+  geom_boxplot()+
+  scale_x_continuous(breaks = NULL)+
+  theme(axis.title.x = element_blank())
+```
+
+
+
+
+
+The graph shows that there are some really extreme outliers. I do not want to drop these off because they might be legit in this case. We would need to examine the what the difference is between what these outliers are doing and what the average are doing. This could be a situation where the average companies in the energy industry are still very young, while the outliers have been around a little longer and therefore are more established.
